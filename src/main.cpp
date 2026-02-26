@@ -126,12 +126,12 @@ void init_map(Renderer* renderer)
     std::cout << "map reading" << std::endl;
 #endif
 
-//    char model2_path[] =
-//#ifdef PC
-//        "./3D_Converted_Models/little_endian_test2.pkObj";
-//#else
-//        "\\fls0\\big_endian_test2.pkObj";
-//#endif
+    char model2_path[] =
+#ifdef PC
+        "./3D_Converted_Models/little_endian_test2.pkObj";
+#else
+        "\\fls0\\big_endian_test2.pkObj";
+#endif
 
     char map_path[] =
 #ifdef PC
@@ -259,6 +259,14 @@ int main(int argc, const char * argv[])
 
     // Key states (Shared for PC logic convenience, but Calc will use specific ones)
     // PC Variables
+    // PC Variables (also used by Calc macros if not fully separated,
+    // but here we separated them. Wait, Calc macros below use key_z/key_clear?)
+    // #define KEY_BOOST key_z
+    // #define KEY_QUIT key_clear
+    // So key_z and key_clear MUST be available for Calc build too!
+    bool key_z = false;
+    bool key_clear = false;
+
 #ifdef PC
     bool key_left = false;
     bool key_right = false;
@@ -273,8 +281,6 @@ int main(int argc, const char * argv[])
     bool key_a = false;
     bool key_d = false;
     bool key_e = false;
-    bool key_z = false;
-    bool key_clear = false;
 #endif
 
     // Calculator Specific Variables to avoid collisions

@@ -6,6 +6,7 @@
 #   include <sdk/os/lcd.h>
 #   include <sdk/os/debug.h>
 #   include <stdio.h> // For FILE, fopen, etc.
+#   include <cstring> // For memset
 #else
 #   include <SDL2/SDL.h>
 #   include <iostream>
