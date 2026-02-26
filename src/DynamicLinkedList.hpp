@@ -23,7 +23,7 @@ for (auto it : linkedList) {
 */
 
 #ifndef PC
-#   include <sdk/os/mem.hpp>
+#   include <sdk/os/mem.h>
 #else
 #   include <cstdlib>
 #   include <iostream>

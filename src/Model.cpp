@@ -1,15 +1,20 @@
 #include "Model.hpp"
 
 #ifndef PC
-#   include <sdk/os/file.hpp>
-#   include <sdk/os/mem.hpp>
-#   include <sdk/os/debug.hpp>
-#   include <sdk/os/lcd.hpp>
+#   include <sdk/os/file.h>
+#   include <sdk/os/mem.h>
+#   include <sdk/os/debug.h>
+#   include <sdk/os/lcd.h>
+#   include <stdio.h> // For FILE, fopen, etc.
+#   include <stdlib.h> // For malloc, free
+#   include <string.h> // For memset
 #else
 #   include <SDL2/SDL.h>
 #   include <iostream>
 #   include <unistd.h>  // File open & close
 #   include <fcntl.h>   // File open & close
+#   include <stdlib.h>
+#   include <string.h>
 #endif
 
 Model::~Model()
@@ -172,10 +177,20 @@ bool Model::load_from_binary_obj_file(char* fname, char* ftexture, bool center)
 {
     // ~~~~~~~~~~~~~~~~~~~~~ Object ~~~~~~~~~~~~~~~~~~~~~
 
+#ifndef PC
+    FILE* fd = fopen(fname, "rb");
+#else
     int fd = open(fname, UNIVERSIAL_FILE_READ );
-    char buff[32] = {0};
+#endif
 
+    // Ensure buffer alignment for SH4 to avoid unaligned access crash
+    __attribute__((aligned(4))) char buff[32] = {0};
+
+#ifndef PC
+    fread(buff, 1, 31, fd);
+#else
     read(fd, buff, 31);
+#endif
     uint32_t vert_count = *((uint32_t*)(buff+0));
     uint32_t face_count = *((uint32_t*)(buff+4));
     uint32_t uvface_count  = *((uint32_t*)(buff+8));
@@ -199,27 +214,63 @@ bool Model::load_from_binary_obj_file(char* fname, char* ftexture, bool center)
     unsigned lseek_uvcoord_start = lseek_uvface_end;
 
     // Read binary to vertices
+#ifndef PC
+    fseek(fd, lseek_vert_start, SEEK_SET);
+#else
     lseek(fd, lseek_vert_start, SEEK_SET);
+#endif
     this->vertices = (fix16_vec3*) malloc(sizeof(fix16_vec3) * this->vertex_count);
+#ifndef PC
+    fread(this->vertices, 1, vert_count*3*4, fd);
+#else
     read(fd, this->vertices, vert_count*3*4);   // vert_count(?x) * x,y,z(3x) * 32b Fix16 (4bytes)
+#endif
 
     // Read binary to faces
+#ifndef PC
+    fseek(fd, lseek_face_start, SEEK_SET);
+#else
     lseek(fd, lseek_face_start, SEEK_SET);
+#endif
     this->faces    = (u_triple*)   malloc(sizeof(u_triple)   * this->faces_count);
+#ifndef PC
+    fread(this->faces, 1, face_count*3*4, fd);
+#else
     read(fd, this->faces, face_count*3*4);      // face_count(?x) * v0 v1 v2 (3x) * 32b unsigned (4bytes)
+#endif
 
     // Read binary to uv faces
+#ifndef PC
+    fseek(fd, lseek_uvface_start, SEEK_SET);
+#else
     lseek(fd, lseek_uvface_start, SEEK_SET);
+#endif
     this->uv_faces = (u_triple*)   malloc(sizeof(u_triple)   * this->uv_face_count);
+#ifndef PC
+    fread(this->uv_faces, 1, uvface_count*3*4, fd);
+#else
     read(fd, this->uv_faces, uvface_count*3*4); // uv_face_count(?x) * v0 v1 v2 (3x) * 32b unsigned (4bytes)
+#endif
 
     // Read binary to uv coords
+#ifndef PC
+    fseek(fd, lseek_uvcoord_start, SEEK_SET);
+#else
     lseek(fd, lseek_uvcoord_start, SEEK_SET);
+#endif
     this->uv_coords = (fix16_vec2*) malloc(sizeof(fix16_vec2) * this->uv_coord_count);
+#ifndef PC
+    fread(this->uv_coords, 1, uv_coord_count*2*4, fd);
+#else
     read(fd, this->uv_coords, uv_coord_count*2*4);   // uv_coord_count(?x) * u,v(2x) * 32b Fix16 (4bytes)
+#endif
 
     // File has been completely read
+#ifndef PC
+    fclose(fd);
+#else
     close(fd);
+#endif
 
     // Center model
     //if(center)
@@ -248,9 +299,17 @@ bool Model::load_from_binary_obj_file(char* fname, char* ftexture, bool center)
     }
 
     // Now load
+#ifndef PC
+    fd = fopen(ftexture, "rb");
+#else
     fd = open(ftexture, UNIVERSIAL_FILE_READ);
+#endif
     memset(buff, 0, 32);
+#ifndef PC
+    fread(buff, 1, 31, fd);
+#else
     read(fd, buff, 31);
+#endif
     uint32_t tex_size_x = *((uint32_t*)(buff+0));
     uint32_t tex_size_y = *((uint32_t*)(buff+4));
 
@@ -267,11 +326,23 @@ bool Model::load_from_binary_obj_file(char* fname, char* ftexture, bool center)
                  << std::endl;
 #endif
     // Read binary to textuer
+#ifndef PC
+    fseek(fd, lseek_texture_start, SEEK_SET);
+#else
     lseek(fd, lseek_texture_start, SEEK_SET);
+#endif
     this->gen_uv_tex = (uint32_t*) malloc(sizeof(uint32_t) * tex_size_x*tex_size_y);
+#ifndef PC
+    fread(this->gen_uv_tex, 1, tex_size_x*tex_size_y*4, fd);
+#else
     read(fd, this->gen_uv_tex, tex_size_x*tex_size_y*4);   // tex_size_x*tex_size_y(?x) * 32b Fix16 (4bytes)
+#endif
 
+#ifndef PC
+    fclose(fd);
+#else
     close(fd);
+#endif
 
     return true;
 }

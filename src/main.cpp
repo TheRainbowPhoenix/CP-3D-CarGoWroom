@@ -14,14 +14,21 @@
 #include "DynamicLinkedList.hpp"
 
 #ifndef PC
-#   include "app_description.hpp"
-#   include <sdk/calc/calc.hpp>
-#   include <sdk/os/input.hpp>
-#   include <sdk/os/lcd.hpp>
-#   include <sdk/os/debug.hpp>
-#   include <sdk/os/mem.hpp>
-#   include <sdk/os/file.hpp>
+#   include <appdef.h>
+#   include <sdk/calc/calc.h>
+#   include <sdk/os/input.h>
+#   include <sdk/os/lcd.h>
+#   include <sdk/os/debug.h>
+#   include <sdk/os/mem.h>
+#   include <sdk/os/file.h>
 #   include "fps_functions.hpp"
+#   include <stdio.h> // For FILE, fopen, etc.
+
+APP_NAME("3D Renderer - CarGoWroom")
+APP_DESCRIPTION("Car test")
+APP_AUTHOR("Henri")
+APP_VERSION("0.0.1")
+
 #else
     // SDL2 as our graphics library
 #   include <SDL2/SDL.h>
@@ -37,28 +44,41 @@
 
 // Keymappings, both ClassPad and SDL2
 #ifndef PC
-#   define KEY_MOVE_LEFT       testKey(k1,k2,KEY_4)
-#   define KEY_MOVE_RIGHT      testKey(k1,k2,KEY_6)
-#   define KEY_MOVE_FORWARD    testKey(k1,k2,KEY_8)
-#   define KEY_MOVE_BACKWARD   testKey(k1,k2,KEY_2)
-#   define KEY_MOVE_UP         testKey(k1,k2,KEY_9)
-#   define KEY_MOVE_DOWN       testKey(k1,k2,KEY_3)
-#   define KEY_MOVE_FOV_ADD    testKey(k1,k2,KEY_ADD)
-#   define KEY_MOVE_FOV_SUB    testKey(k1,k2,KEY_SUBTRACT)
-#   define KEY_MOVE_REND_MODE  testKey(k1,k2,KEY_0)
-#   define KEY_BOOST           testKey(k1,k2,KEY_Z)
+// V3 Keycodes
+// We separate Physical Key Variables to avoid logical collisions between
+// e.g. KeyPad 8 (Move) and Arrow Up (Rotate) if they were mapped to the same variable.
+#   define KEY_MOVE_LEFT       key_pad_4
+#   define KEY_MOVE_RIGHT      key_pad_6
+#   define KEY_MOVE_FORWARD    key_pad_8
+#   define KEY_MOVE_BACKWARD   key_pad_2
+#   define KEY_MOVE_UP         key_pad_9
+#   define KEY_MOVE_DOWN       key_pad_3
+#   define KEY_MOVE_FOV_ADD    key_plus
+#   define KEY_MOVE_FOV_SUB    key_minus
+#   define KEY_MOVE_REND_MODE  key_pad_0
+#   define KEY_BOOST           key_z
 #   ifdef LANDSCAPE_MODE
-#       define KEY_ROTATE_LEFT     testKey(k1,k2,KEY_UP)
-#       define KEY_ROTATE_RIGHT    testKey(k1,k2,KEY_DOWN)
-#       define KEY_ROTATE_UP       testKey(k1,k2,KEY_RIGHT)
-#       define KEY_ROTATE_DOWN     testKey(k1,k2,KEY_LEFT)
+// In Landscape mode:
+// Arrow Up -> Rotate Left
+// Arrow Down -> Rotate Right
+// Arrow Right -> Accelerate
+// Arrow Left -> Brake
+#       define KEY_ROTATE_LEFT     key_arrow_up
+#       define KEY_ROTATE_RIGHT    key_arrow_down
+#       define KEY_ROTATE_UP       key_arrow_right
+#       define KEY_ROTATE_DOWN     key_arrow_left
 #   else
-#       define KEY_ROTATE_LEFT     testKey(k1,k2,KEY_LEFT)
-#       define KEY_ROTATE_RIGHT    testKey(k1,k2,KEY_RIGHT)
-#       define KEY_ROTATE_UP       testKey(k1,k2,KEY_UP)
-#       define KEY_ROTATE_DOWN     testKey(k1,k2,KEY_DOWN)
+// In Portrait mode:
+// Arrow Left -> Rotate Left
+// Arrow Right -> Rotate Right
+// Arrow Up -> Accelerate
+// Arrow Down -> Brake
+#       define KEY_ROTATE_LEFT     key_arrow_left
+#       define KEY_ROTATE_RIGHT    key_arrow_right
+#       define KEY_ROTATE_UP       key_arrow_up
+#       define KEY_ROTATE_DOWN     key_arrow_down
 #   endif
-#   define KEY_QUIT            testKey(k1,k2,KEY_CLEAR)
+#   define KEY_QUIT            key_clear
 #else
 #   define KEY_BOOST           key_space
 #   define KEY_MOVE_LEFT       key_left
@@ -120,17 +140,30 @@ void init_map(Renderer* renderer)
         "\\fls0\\big_map.map";
 #endif
 
+#ifndef PC
+    FILE* fd = fopen(map_path, "rb");
+#else
     int fd = open(map_path, UNIVERSIAL_FILE_READ );
-    char buff[32] = {0};
+#endif
+    // ALIGNMENT FIX: Ensure buffer is aligned for SH4 32-bit access
+    __attribute__((aligned(4))) char buff[32] = {0};
     memset(buff, 0, 32);
 
     // Read 4 bytes (map_elem_count)
+#ifndef PC
+    fread(buff, 1, 4, fd);
+#else
     read(fd, buff, 4);
+#endif
     uint32_t map_elem_count = *((uint32_t*)(buff+0));
     // Read elements
     for (uint32_t i=0; i<map_elem_count; i++){
         // Read 3 * 4 bytes (map_elem_count)
+#ifndef PC
+        fread(buff, 1, 3*4, fd);
+#else
         read(fd, buff, 3*4);
+#endif
         Fix16 x = *((Fix16*)(buff+0));
         Fix16 y = *((Fix16*)(buff+4));
         uint32_t elem_type = *((uint32_t*)(buff+8));
@@ -183,7 +216,11 @@ void init_map(Renderer* renderer)
         m->_calculateEncapsulatingSphere();
 
     }
+#ifndef PC
+    fclose(fd);
+#else
     close(fd);
+#endif
 }
 
 
@@ -193,9 +230,15 @@ bool modelArrayEqual(const Pair<Model*, Fix16>& a, const Pair<Model*, Fix16>& b)
 }
 
 #ifndef PC
-extern "C" void main()
+int main()
 {
-    calcInit(); //backup screen and init some variables
+    // Initialize LFSR
+    uint16_t lfsr = 0x453A;
+
+    // Initialize VRAM globals
+    vram = (uint16_t*)LCD_GetVRAMAddress();
+    LCD_GetSize(&width, &height);
+
 #else // ifdef PC
 int main(int argc, const char * argv[])
 {
@@ -210,6 +253,11 @@ int main(int argc, const char * argv[])
     };
     uint32_t SDL2_MAX_FRAMERATE = SDL2_MAX_FRAMERATE_LIST[sdl_frame_rate_i];
 
+
+#endif // PC
+
+    // Key states (Shared for PC logic convenience, but Calc will use specific ones)
+    // PC Variables
     bool key_left = false;
     bool key_right = false;
     bool key_up = false;
@@ -223,10 +271,33 @@ int main(int argc, const char * argv[])
     bool key_a = false;
     bool key_d = false;
     bool key_e = false;
+    bool key_z = false;
+    bool key_clear = false;
+
+    // Calculator Specific Variables to avoid collisions
+#ifndef PC
+    bool key_pad_4 = false;
+    bool key_pad_6 = false;
+    bool key_pad_8 = false;
+    bool key_pad_2 = false;
+    bool key_pad_9 = false;
+    bool key_pad_3 = false;
+    bool key_pad_0 = false;
+    bool key_plus = false;
+    bool key_minus = false;
+    bool key_arrow_up = false;
+    bool key_arrow_down = false;
+    bool key_arrow_left = false;
+    bool key_arrow_right = false;
+#endif
+
+#ifdef PC
     bool key_ESCAPE = false;
     bool key_space = false;
+#endif
+
     bool KEY_MOVE_LEFT_prev = false;
-#endif // PC
+
     bool KEY_RENDER_MODE_prev = false; // De-bouncing the button
     bool camera_position_prev = false; // De-bouncing the button
     char model1_path[] =
@@ -324,8 +395,33 @@ int main(int argc, const char * argv[])
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #ifndef PC
-        // ClassPad keypresses are stored in k1 and k2 in bits
-        uint32_t k1,k2; getKey(&k1,&k2);
+        // ClassPad V3 Input Polling
+        Input_Event event __attribute__((aligned(4)));
+        while(Input_GetInput(&event, 0, 0) == 1) { // Non-blocking
+            bool key_state = (event.type == Input_Type::InputTypeKey && event.data.key.state == 1);
+            if (event.type == Input_Type::InputTypeKey) {
+                switch(event.data.key.keyCode) {
+                    case KEYCODE_4: key_pad_4 = key_state; break;
+                    case KEYCODE_6: key_pad_6 = key_state; break;
+                    case KEYCODE_8: key_pad_8 = key_state; break;
+                    case KEYCODE_2: key_pad_2 = key_state; break;
+                    case KEYCODE_9: key_pad_9 = key_state; break;
+                    case KEYCODE_3: key_pad_3 = key_state; break;
+                    case KEYCODE_PLUS: key_plus = key_state; break; // FOV ADD
+                    case KEYCODE_MINUS: key_minus = key_state; break; // FOV SUB
+                    case KEYCODE_0: key_pad_0 = key_state; break;
+                    case KEYCODE_Z: key_z = key_state; break;
+                    case KEYCODE_POWER_CLEAR: key_clear = key_state; break;
+                    // Arrows
+                    case KEYCODE_UP:    key_arrow_up = key_state; break;
+                    case KEYCODE_DOWN:  key_arrow_down = key_state; break;
+                    case KEYCODE_LEFT:  key_arrow_left = key_state; break;
+                    case KEYCODE_RIGHT: key_arrow_right = key_state; break;
+
+                    default: break;
+                }
+            }
+        }
 #else // !PC -> PC
         // Get the next event
         SDL_Event event;
@@ -351,6 +447,7 @@ int main(int argc, const char * argv[])
                         case SDLK_e:      key_e     = true; break;
                         case SDLK_ESCAPE: key_ESCAPE = true; break;
                         case SDLK_SPACE:  key_space  = true; break;
+                        case SDLK_z:      key_z      = true; break; // Added support for Z
                         default:                            break;
                     }
                     break;
@@ -371,6 +468,7 @@ int main(int argc, const char * argv[])
                         case SDLK_e:     key_e     = false; break;
                         case SDLK_ESCAPE: key_ESCAPE = false; break;
                         case SDLK_SPACE:  key_space  = false; break;
+                         case SDLK_z:     key_z      = false; break;
                         default:                            break;
                     }
                     break;
@@ -389,7 +487,13 @@ int main(int argc, const char * argv[])
 
 #ifndef PC
     // Only poll Calculator when any key was pressed
-    if (Input_IsAnyKeyDown())
+    // With event loop, we don't need this check, as we process events.
+    // However, the original code had `if (Input_IsAnyKeyDown())` to avoid running logic if no input?
+    // No, `GetKey` was polling.
+    // The `Input_IsAnyKeyDown` was likely an optimization or check.
+    // In V3 event loop, we have updated state variables.
+    // We can just proceed.
+    if (true)
     {
 #else
     if (PC_ALLOW_RENDER)
@@ -653,7 +757,7 @@ int main(int argc, const char * argv[])
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #ifndef PC
-    calcEnd(); //restore screen and do stuff
+    return 0;
 #else
     // End program without leaking memory
     SDL_DestroyTexture(texture);

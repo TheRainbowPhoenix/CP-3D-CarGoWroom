@@ -9,6 +9,9 @@
     typedef uint32_t color_t; // SDL2 uses 32b colors (24b colors + 8b alpha). Alpha not used.
 #else
     typedef uint16_t color_t; // ClassPad uses 16b colors
+    extern uint16_t* vram;
+    extern int width;
+    extern int height;
 #endif
 
 Fix16 calculateLightIntensityPointLight(const fix16_vec3& lightPos,     const fix16_vec3& surfacePos, const fix16_vec3& normal, Fix16 lightIntensity);

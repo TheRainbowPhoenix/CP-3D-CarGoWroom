@@ -1,0 +1,1 @@
+FROM ghcr.io/classpaddev/hollyhock-3:v2.2.1

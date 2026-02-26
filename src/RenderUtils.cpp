@@ -5,7 +5,10 @@
 #include "RenderFP3D.hpp"
 
 #ifndef PC
-#   include <sdk/calc/calc.hpp>
+#   include <sdk/os/lcd.h>
+    // Global VRAM pointers
+    uint16_t* vram;
+    int width, height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif

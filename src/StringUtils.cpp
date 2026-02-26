@@ -1,10 +1,11 @@
 #include "StringUtils.hpp"
 
 #ifndef PC
-#   include <sdk/os/file.hpp>
-#   include <sdk/os/mem.hpp>
-#   include <sdk/os/lcd.hpp>
-#   include <sdk/os/debug.hpp>
+#   include <sdk/os/file.h>
+#   include <sdk/os/mem.h>
+#   include <sdk/os/lcd.h>
+#   include <sdk/os/debug.h>
+#   include <stdio.h> // For FILE, fopen, etc.
 #else
 #   include <SDL2/SDL.h>
 #   include <iostream>
@@ -34,14 +35,22 @@ int custom_atoi(char* str)
 
 // Returns: true if could find target
 //          false could not find (Also seeks back to original location)
+#ifndef PC
+bool seek_next_char(FILE* fd, char target)
+#else
 bool seek_next_char(int fd, char target)
+#endif
 {
     bool found = false;
     const uint16_t BUF_SIZE = 64;
     char buf[BUF_SIZE];
     int total_seek = 0;
     while(!found){
+#ifndef PC
+        int rd_bytes = fread(buf, 1, BUF_SIZE, fd);
+#else
         int rd_bytes = read(fd, buf, BUF_SIZE);
+#endif
         // Check if end of file was reached
         if (rd_bytes <= 0)
             break;
@@ -51,7 +60,11 @@ bool seek_next_char(int fd, char target)
         uint16_t idx = 0;
         while(buf[idx] != '\0'){
             if (buf[idx] == target){
+#ifndef PC
+                fseek(fd, -rd_bytes+idx, SEEK_CUR);
+#else
                 lseek(fd, -rd_bytes+idx, SEEK_CUR);
+#endif
                 found = true;
                 break;
             }
@@ -59,7 +72,11 @@ bool seek_next_char(int fd, char target)
         }
     }
     if(!found)
+#ifndef PC
+        fseek(fd, -total_seek, SEEK_CUR);
+#else
         lseek(fd, -total_seek, SEEK_CUR);
+#endif
     return found;
 }
 
@@ -71,7 +88,11 @@ bool seek_next_char(int fd, char target)
 //
 // Returns:  true when successful
 //          false when not succesful (also seeks back to original location)
+#ifndef PC
+bool read_until(FILE* fd, char* buf, int buf_size, char target, bool include_target)
+#else
 bool read_until(int fd, char* buf, int buf_size, char target, bool include_target)
+#endif
 {
     // Memset should not be needed in theory but for some reason when printing it does not stop at
     // first NULL and does some more magic. So nullifying string first.
@@ -90,7 +111,11 @@ bool read_until(int fd, char* buf, int buf_size, char target, bool include_targe
         if (buf_size_left <= 0){
             break;
         }
+#ifndef PC
+        int rd_bytes = fread(buf, 1, READ_CHUNK_SIZE, fd);
+#else
         int rd_bytes = read(fd, buf, READ_CHUNK_SIZE);
+#endif
 #ifndef PC
         Debug_Printf(1,8, false, 0, "rd_byte: %d", rd_bytes);
         LCD_Refresh();
@@ -104,7 +129,11 @@ bool read_until(int fd, char* buf, int buf_size, char target, bool include_targe
         uint16_t idx = 0;
         while(buf[idx] != '\0'){
             if (buf[idx] == target){
+#ifndef PC
+                fseek(fd, -rd_bytes+idx+1, SEEK_CUR);
+#else
                 lseek(fd, -rd_bytes+idx+1, SEEK_CUR);
+#endif
                 found = true;
                 break;
             }
@@ -121,7 +150,11 @@ bool read_until(int fd, char* buf, int buf_size, char target, bool include_targe
         orig_buf[target_length] = '\0';
     }
     else{
+#ifndef PC
+        fseek(fd, -total_seek, SEEK_CUR);
+#else
         lseek(fd, -total_seek, SEEK_CUR);
+#endif
     }
     return found;
 }
@@ -131,13 +164,21 @@ bool read_until(int fd, char* buf, int buf_size, char target, bool include_targe
 // Windows default is Carriage + Linefeed \r\n (CRLF) which is 2 characters.
 // TODO: Add another read_until that has target
 //       string instead of single character.
+#ifndef PC
+bool read_line(FILE* fd, char* buf, int buf_size)
+#else
 bool read_line(int fd, char* buf, int buf_size)
+#endif
 {
     // Reads line till new line
     if(read_until(fd, buf, buf_size, '\n', false))
         return true;
     // Reached end (no more new lines). Just read the rest of the line normally
+#ifndef PC
+    int last_read = fread(buf, 1, buf_size, fd);
+#else
     int last_read = read(fd, buf, buf_size);
+#endif
     #ifndef PC
         Debug_Printf(1,7, false, 0, "last_read: %d", last_read);
         LCD_Refresh();
