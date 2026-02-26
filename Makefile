@@ -1,105 +1,86 @@
-# Built binary name
-APP_NAME := App_3D_CarGoWroom
+SOURCEDIR = src
+BUILDDIR = obj
+OUTDIR = dist
+DEPDIR = .deps
 
-ifndef SDK_DIR
-$(error You need to define the SDK_DIR environment variable, and point it to the sdk/ folder)
-endif
+AS:=sh4a_nofpueb-elf-gcc
+AS_FLAGS:=-gdwarf-5
 
-# Directory structure
-BUILD_DIR := build
-SRC_DIR := src
-LINKER_DIR := linker
-SUB_DIRS := $(shell find $(SRC_DIR) -type d)  # List of subdirectories in SRC_DIR
+SDK_DIR?=$(HOME)/.classpad/sdk
 
-SUB_DIRS_FOLDER_ONLY := $(shell cd $(SRC_DIR) && find . -type d | sed 's,^[^/]*/,,'  | sed -e 's/^/$(BUILD_DIR)\//')  # List of subdirectories in SRC_DIR
+DEPFLAGS=-MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
+WARNINGS=-Wall -Wextra -pedantic -Werror -pedantic-errors
+INCLUDES=-I$(SDK_DIR)/include -include $(SOURCEDIR)/GLOBAL_CONSTANTS.hpp
+DEFINES=
+FUNCTION_FLAGS=-flto=auto -ffat-lto-objects -fno-builtin -ffunction-sections -fdata-sections -gdwarf-5 -O2
+COMMON_FLAGS=$(FUNCTION_FLAGS) $(INCLUDES) $(WARNINGS) $(DEFINES)
 
-APP_ELF:=$(APP_NAME).hhk
-APP_BIN:=$(APP_NAME).bin
+CC:=sh4a_nofpueb-elf-gcc
+CC_FLAGS=-std=c23 $(COMMON_FLAGS)
 
-# Opt Flag
-#OPT_FLAG := -Ofast
-#OPT_FLAG := -O2
-OPT_FLAG := -O3
+CXX:=sh4a_nofpueb-elf-g++
+CXX_FLAGS=-std=c++20 $(COMMON_FLAGS)
 
-# Always include headers
-ALWAYS_INCLUDE := -include ./src/GLOBAL_CONSTANTS.hpp
+LD:=sh4a_nofpueb-elf-g++
+LD_FLAGS:=$(FUNCTION_FLAGS) -Wl,--gc-sections
+LIBS:=-L$(SDK_DIR) -lsdk
 
-# Toolchain
-AS := sh4-elf-as
-AS_FLAGS :=
-CC := sh4-elf-gcc
-CC_FLAGS := -ffreestanding -fshort-wchar -Wall -Wextra $(OPT_FLAG) -I $(SDK_DIR)/include/ $(ALWAYS_INCLUDE)
-CXX := sh4-elf-g++
-CXX_FLAGS := -ffreestanding -fno-exceptions -fno-rtti -fshort-wchar -Wall -Wextra $(OPT_FLAG) -I $(SDK_DIR)/include/ -m4a-nofpu $(ALWAYS_INCLUDE)
-LD := sh4-elf-ld
-LD_FLAGS := -nostdlib --no-undefined
-READELF := sh4-elf-readelf
-OBJCOPY := sh4-elf-objcopy
+READELF:=sh4a_nofpueb-elf-readelf
+OBJCOPY:=sh4a_nofpueb-elf-objcopy
+STRIP:=sh4a_nofpueb-elf-strip
 
-# Source files
-AS_SOURCES := $(wildcard $(SRC_DIR)/*.s) $(foreach dir,$(SUB_DIRS),$(wildcard $(dir)/*.s))
-CC_SOURCES := $(wildcard $(SRC_DIR)/*.c) $(foreach dir,$(SUB_DIRS),$(wildcard $(dir)/*.c))
-CXX_SOURCES := $(wildcard $(SRC_DIR)/*.cpp) $(foreach dir,$(SUB_DIRS),$(wildcard $(dir)/*.cpp))
+APP_ELF := $(OUTDIR)/CPapp.elf
+APP_HH3 := $(APP_ELF:.elf=.hh3)
 
-# Object files
-AS_OBJECTS := $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(AS_SOURCES))
-CC_OBJECTS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(CC_SOURCES))
-CXX_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(CXX_SOURCES))
+AS_SOURCES:=$(shell find $(SOURCEDIR) -name '*.S')
+CC_SOURCES:=$(shell find $(SOURCEDIR) -name '*.c')
+CXX_SOURCES:=$(shell find $(SOURCEDIR) -name '*.cpp')
+OBJECTS := $(addprefix $(BUILDDIR)/,$(AS_SOURCES:.S=.o)) \
+	$(addprefix $(BUILDDIR)/,$(CC_SOURCES:.c=.o)) \
+	$(addprefix $(BUILDDIR)/,$(CXX_SOURCES:.cpp=.o))
 
-# Remove duplicates from object lists
-AS_OBJECTS := $(sort $(AS_OBJECTS))
-CC_OBJECTS := $(sort $(CC_OBJECTS))
-CXX_OBJECTS := $(sort $(CXX_OBJECTS))
+NOLTOOBJS := $(foreach obj, $(OBJECTS), $(if $(findstring /nolto/, $(obj)), $(obj)))
 
-OBJECTS := $(AS_OBJECTS) $(CC_OBJECTS) $(CXX_OBJECTS)
+DEPFILES := $(OBJECTS:$(BUILDDIR)/%.o=$(DEPDIR)/%.d)
 
-# Targets
-.PHONY: all bin clean
+hh3: $(APP_HH3) Makefile
+elf: $(APP_ELF) Makefile
 
-all: $(APP_BIN) Makefile
+all: elf hh3
+.DEFAULT_GOAL := all
+.SECONDARY: # Prevents intermediate files from being deleted
 
-hhk: $(APP_ELF)
-
-bin: $(APP_BIN) Makefile
-
+.NOTPARALLEL: clean
 clean:
-	rm -f $(APP_ELF) $(APP_BIN) $(OBJECTS)
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILDDIR) $(OUTDIR) $(DEPDIR)
 
-PC_only:
-	./makepc
-	./pc_out
+%.hh3: %.elf
+	$(STRIP) -o $@ $^
 
-PC: all
-	./makepc
-	./pc_out
+$(APP_ELF): $(OBJECTS)
+	@mkdir -p $(dir $@)
+	$(LD) -Wl,-Map $@.map -o $@ $(LD_FLAGS) $^ $(LIBS)
 
-$(APP_ELF): $(OBJECTS) $(SDK_DIR)/sdk.o $(LINKER_DIR)/linker_hhk.ld
-	$(LD) -T $(LINKER_DIR)/linker_hhk.ld -o $@ $(LD_FLAGS) $(OBJECTS) $(SDK_DIR)/sdk.o
-	$(OBJCOPY) --set-section-flags .hollyhock_name=contents,strings,readonly $(APP_ELF) $(APP_ELF)
-	$(OBJCOPY) --set-section-flags .hollyhock_description=contents,strings,readonly $(APP_ELF) $(APP_ELF)
-	$(OBJCOPY) --set-section-flags .hollyhock_author=contents,strings,readonly $(APP_ELF) $(APP_ELF)
-	$(OBJCOPY) --set-section-flags .hollyhock_version=contents,strings,readonly $(APP_ELF) $(APP_ELF)
+$(NOLTOOBJS): FUNCTION_FLAGS+=-fno-lto
 
-$(APP_BIN): $(OBJECTS) $(SDK_DIR)/sdk.o $(LINKER_DIR)/linker_bin.ld
-	$(LD) --oformat binary -T $(LINKER_DIR)/linker_bin.ld -o $@ $(LD_FLAGS) $(OBJECTS) $(SDK_DIR)/sdk.o
+$(BUILDDIR)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(AS) -c $< -o $@ $(AS_FLAGS)
 
-# Rule to compile assembly source files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
-	$(AS) $< -o $@ $(AS_FLAGS)
+$(BUILDDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@mkdir -p $(dir $(DEPDIR)/$<)
+	+$(CC) -c $< -o $@ $(CC_FLAGS) $(DEPFLAGS)
 
-# Rule to compile C source files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(CC) -c $< -o $@ $(CC_FLAGS)
+$(BUILDDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	@mkdir -p $(dir $(DEPDIR)/$<)
+	+$(CXX) -c $< -o $@ $(CXX_FLAGS) $(DEPFLAGS)
 
-# Rule to compile C++ source files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) -c $< -o $@ $(CXX_FLAGS)
-	@$(READELF) $@ -S | grep ".ctors" > /dev/null && echo "ERROR: Global constructors aren't supported." && rm $@ && exit 1 || exit 0
+compile_commands.json:
+	$(MAKE) $(MAKEFLAGS) clean
+	bear -- sh -c "$(MAKE) $(MAKEFLAGS) --keep-going all || exit 0"
 
-# Rule to create the build directory
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-	mkdir -p $(SUB_DIRS_FOLDER_ONLY)
+.PHONY: elf hh3 all clean compile_commands.json
 
-
+-include $(DEPFILES)

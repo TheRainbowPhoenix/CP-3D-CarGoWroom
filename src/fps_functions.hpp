@@ -8,36 +8,30 @@
 
 #pragma once
 
-#include <sdk/os/string.hpp>
-#include <sdk/os/debug.hpp>
+#ifndef PC
+#include <string.h>
+#include <sdk/os/debug.h>
+#else
+#include <string.h>
+#include <stdio.h> // For printf if debug used
+#endif
 
-uint8_t *R64CNT = (uint8_t*)0xA413FEC0;
-uint8_t prevtime = 0;
-int fps10 = 10;
-char fps_formatted[9];
+// Extern declarations
+#ifndef PC
+extern uint8_t *R64CNT;
+#endif
+extern uint8_t prevtime;
+extern int fps10;
+extern char fps_formatted[9];
 
-void fps_update() {
-    // update fps10
-    if (*R64CNT - prevtime == 0) {
-        fps10 = 1280;
-    } else {
-        fps10 = 1280 / ((int)((*R64CNT - prevtime) & 0b01111111));
-    }
-    prevtime = *R64CNT;
-}
-
-void fps_formatted_update() {
-    int16_t dec00_1 = fps10;
-    uint8_t dec01_0 = 0;
-    uint8_t dec10_0 = 0;
-    while (dec00_1 >= 100) { dec00_1-= 100; dec10_0++; }
-    while (dec00_1 >= 10)  { dec00_1-=  10; dec01_0++; }
-    strcpy(fps_formatted, "  .  FPS");
-    fps_formatted[0] = dec10_0 + 48;
-    fps_formatted[1] = dec01_0 + 48;
-    fps_formatted[3] = (uint8_t)(dec00_1 + 48);
-}
+// Function prototypes
+void fps_update();
+void fps_formatted_update();
 
 inline void fps_display() {
+#ifndef PC
     Debug_Printf(0,0,false,0,fps_formatted);
+#else
+    printf("%s\n", fps_formatted);
+#endif
 }

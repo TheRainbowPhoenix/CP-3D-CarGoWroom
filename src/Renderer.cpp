@@ -7,9 +7,12 @@
 #include "RenderUtils.hpp"
 
 #ifndef PC
-#   include <sdk/os/lcd.hpp>
-#   include <sdk/calc/calc.hpp>
-#   include <sdk/os/input.hpp>
+#   include <sdk/os/lcd.h>
+#   include <sdk/calc/calc.h>
+#   include <sdk/os/input.h>
+    extern uint16_t* vram;
+    extern int width;
+    extern int height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif
@@ -119,6 +122,9 @@ void Renderer::screen_flush()
 {
 #ifndef PC
     LCD_Refresh();
+    // Get VRAM and Size ONCE per frame
+    vram = (uint16_t*)LCD_GetVRAMAddress();
+    LCD_GetSize(&width, &height);
 #else
     SDL_UpdateTexture(_texture, NULL, screenPixels, SCREEN_X * sizeof(Uint32));
     SDL_RenderClear(_sdl_renderer);
