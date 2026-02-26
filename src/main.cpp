@@ -126,12 +126,12 @@ void init_map(Renderer* renderer)
     std::cout << "map reading" << std::endl;
 #endif
 
-    char model2_path[] =
-#ifdef PC
-        "./3D_Converted_Models/little_endian_test2.pkObj";
-#else
-        "\\fls0\\big_endian_test2.pkObj";
-#endif
+//    char model2_path[] =
+//#ifdef PC
+//        "./3D_Converted_Models/little_endian_test2.pkObj";
+//#else
+//        "\\fls0\\big_endian_test2.pkObj";
+//#endif
 
     char map_path[] =
 #ifdef PC
@@ -201,7 +201,7 @@ void init_map(Renderer* renderer)
         m->getPosition_ref().x = x;
         m->getPosition_ref().z = y;
         m->getPosition_ref().y = 0.0f;
-        m->color = color(r, g, b);
+        m->color = rgb565(r, g, b);
         m->collision_extra = collision_info;
 
         // Rotation
@@ -234,6 +234,7 @@ int main()
 {
     // Initialize LFSR
     uint16_t lfsr = 0x453A;
+    (void)lfsr; // Suppress unused variable warning if not used yet
 
     // Initialize VRAM globals
     global_vram = (uint16_t*)LCD_GetVRAMAddress();
@@ -258,6 +259,7 @@ int main(int argc, const char * argv[])
 
     // Key states (Shared for PC logic convenience, but Calc will use specific ones)
     // PC Variables
+#ifdef PC
     bool key_left = false;
     bool key_right = false;
     bool key_up = false;
@@ -273,6 +275,7 @@ int main(int argc, const char * argv[])
     bool key_e = false;
     bool key_z = false;
     bool key_clear = false;
+#endif
 
     // Calculator Specific Variables to avoid collisions
 #ifndef PC
@@ -296,7 +299,9 @@ int main(int argc, const char * argv[])
     bool key_space = false;
 #endif
 
+#ifdef PC
     bool KEY_MOVE_LEFT_prev = false;
+#endif
 
     bool KEY_RENDER_MODE_prev = false; // De-bouncing the button
     bool camera_position_prev = false; // De-bouncing the button
@@ -314,12 +319,12 @@ int main(int argc, const char * argv[])
         "\\fls0\\big_endian_my_car.texture";
 #endif
 
-    char model2_path[] =
-#ifdef PC
-        "./3D_Converted_Models/little_endian_test2.pkObj";
-#else
-        "\\fls0\\big_endian_test2.pkObj";
-#endif
+//    char model2_path[] =
+//#ifdef PC
+//        "./3D_Converted_Models/little_endian_test2.pkObj";
+//#else
+//        "\\fls0\\big_endian_test2.pkObj";
+//#endif
 
 
     fillScreen(FILL_SCREEN_COLOR);
@@ -351,7 +356,7 @@ int main(int argc, const char * argv[])
     car_Model->_scaleModelTo(8.0f);
     car_Model->getRotation_ref().y = Fix16(fix16_pi);
     car_Model->_shiftTransform({0.0f,0.0f,1.0f});
-    car_Model->color = color(255,0,0);
+    car_Model->color = rgb565(255,0,0);
     car_Model->_calculateEncapsulatingSphere();
 
     // Create map out of file
@@ -398,8 +403,8 @@ int main(int argc, const char * argv[])
         // ClassPad V3 Input Polling
         Input_Event event __attribute__((aligned(4)));
         while(Input_GetInput(&event, 0, 0) == 1) { // Non-blocking
-            bool key_state = (event.type == Input_Type::InputTypeKey && event.data.key.state == 1);
-            if (event.type == Input_Type::InputTypeKey) {
+            bool key_state = (event.type == Input_EventType::Key && event.data.key.down);
+            if (event.type == Input_EventType::Key) {
                 switch(event.data.key.keyCode) {
                     case KEYCODE_4: key_pad_4 = key_state; break;
                     case KEYCODE_6: key_pad_6 = key_state; break;

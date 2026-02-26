@@ -254,7 +254,7 @@ void Renderer::draw_Minimap(bool clear)
 
     color_t colorr;
     if(clear) colorr = FILL_SCREEN_COLOR;
-    else      colorr = color(12,12,32);
+    else      colorr = rgb565(12,12,32);
 
     // Draw edges
     line(x1, y1, x2, y2, colorr);
@@ -375,7 +375,7 @@ void Renderer::update()
                     continue;
                 int16_t x = (int16_t)screen_vec2.x;
                 int16_t y = (int16_t)screen_vec2.y;
-                draw_center_square(x,y,5,5, color(0,0,0));
+                draw_center_square(x,y,5,5, rgb565(0,0,0));
                 // Check bbox
                 if (bbox_max.x < x+2) bbox_max.x = x+2;
                 if (bbox_max.y < y+2) bbox_max.y = y+2;

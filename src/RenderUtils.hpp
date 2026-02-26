@@ -4,24 +4,25 @@
 
 // TODO: Only needed for structs fix16_vec3. Move these somewhere else...
 #include "Fix16_Utils.hpp"
+#include <cstdlib> // for abs
 
 #ifdef PC
     typedef uint32_t color_t; // SDL2 uses 32b colors (24b colors + 8b alpha). Alpha not used.
 #else
     typedef uint16_t color_t; // ClassPad uses 16b colors
     extern uint16_t* global_vram;
-    extern int screen_width;
-    extern int screen_height;
+    extern unsigned int screen_width;
+    extern unsigned int screen_height;
 #endif
 
 // Inline Graphics Helpers
 #ifndef PC
-inline color_t color(uint8_t r, uint8_t g, uint8_t b) {
+inline color_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
     return ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
 }
 
 inline void setPixel(int x, int y, color_t c) {
-    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height) {
+    if (x >= 0 && x < (int)screen_width && y >= 0 && y < (int)screen_height) {
         global_vram[y * screen_width + x] = c;
     }
 }
@@ -47,7 +48,8 @@ inline void line(int x0, int y0, int x1, int y1, color_t c) {
 // Let's add prototypes for PC build if they aren't there.
 // Actually, PC build uses SDL, so these might be implemented differently.
 // Let's check RenderUtils.cpp
-color_t color(uint8_t r, uint8_t g, uint8_t b);
+color_t rgb565(uint8_t r, uint8_t g, uint8_t b);
+#define color(r,g,b) rgb565(r,g,b)
 void setPixel(int x, int y, color_t c);
 void line(int x0, int y0, int x1, int y1, color_t c);
 #endif

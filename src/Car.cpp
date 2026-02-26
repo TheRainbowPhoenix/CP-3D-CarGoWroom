@@ -94,8 +94,8 @@ inline void drawBoostIndicator(const Fix16 boostLeft, const color_t colorr)
     line( x1,  y1,       x2,   y2,   colorr );
     line( x1,  y1+1,     x2,   y2+1, colorr );
     // Border
-    line( x1_full,  y1-2,     x2_full,   y2-2, color(0,0,125));
-    line( x1_full,  y1+3,     x2_full,   y2+3, color(0,0,125));
+    line( x1_full,  y1-2,     x2_full,   y2-2, rgb565(0,0,125));
+    line( x1_full,  y1+3,     x2_full,   y2+3, rgb565(0,0,125));
 #else
 #   error "TODO BOOST INDICATOR PORTRAIT MODE"
 #endif
@@ -110,8 +110,8 @@ void Car::clear_UI()
 void Car::draw_UI()
 {
     // Draw speed indicatior
-    drawSpeedIndicator(speed,        color(178,0,0));
-    drawBoostIndicator(boostLeft_UI, color(12,40,210));
+    drawSpeedIndicator(speed,        rgb565(178,0,0));
+    drawBoostIndicator(boostLeft_UI, rgb565(12,40,210));
 }
 
 void Car::add_boost(Fix16 boostTime)

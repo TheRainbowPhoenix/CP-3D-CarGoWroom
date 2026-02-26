@@ -11,7 +11,7 @@
 #   include <SDL2/SDL.h>
 #endif
 
-#define FILL_SCREEN_COLOR color(190,190,190)
+#define FILL_SCREEN_COLOR rgb565(190,190,190)
 
 #define _NO_TEXTURE_IMPL    (char*)NO_TEXTURE_PATH
 #define NO_TEXTURE          _NO_TEXTURE_IMPL

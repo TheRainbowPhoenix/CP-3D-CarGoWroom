@@ -8,7 +8,7 @@
 #   include <sdk/os/lcd.h>
     // Global VRAM pointers
     uint16_t* global_vram;
-    int screen_width, screen_height;
+    unsigned int screen_width, screen_height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif
@@ -19,7 +19,7 @@
 
 #ifdef PC
 // PC Implementations of graphics primitives
-color_t color(uint8_t r, uint8_t g, uint8_t b) {
+color_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
     return (r << 16) | (g << 8) | b;
 }
 
@@ -111,7 +111,7 @@ void drawHorizontalLine(
             r = (uint8_t) ((int16_t)(Fix16((int16_t)r) * lightInstensity));
             g = (uint8_t) ((int16_t)(Fix16((int16_t)g) * lightInstensity));
             b = (uint8_t) ((int16_t)(Fix16((int16_t)b) * lightInstensity));
-            auto c = color(r,g,b);
+            auto c = rgb565(r,g,b);
             setPixel(x0, y, c);
         }
         return;
@@ -130,7 +130,7 @@ void drawHorizontalLine(
             r = (uint8_t) ((int16_t)(Fix16((int16_t)r) * lightInstensity));
             g = (uint8_t) ((int16_t)(Fix16((int16_t)g) * lightInstensity));
             b = (uint8_t) ((int16_t)(Fix16((int16_t)b) * lightInstensity));
-            auto c = color(r,g,b);
+            auto c = rgb565(r,g,b);
             setPixel(x, y, c);
         }
     }
@@ -244,9 +244,9 @@ void draw_RotationVisualizer(fix16_vec2 camera_rot)
     const auto offset_y =            ROTATION_VISALIZER_EDGE_OFFSET + (int16_t) ROTATION_VISUALIZER_LINE_WIDTH;
 #endif
     // Draw actual lines
-    line(((int16_t) p_x.x)+offset_x,((int16_t) p_x.y)+offset_y, offset_x, offset_y, color(255,0,0));
-    line(((int16_t) p_y.x)+offset_x,((int16_t) p_y.y)+offset_y, offset_x, offset_y, color(0,255,0));
-    line(((int16_t) p_z.x)+offset_x,((int16_t) p_z.y)+offset_y, offset_x, offset_y, color(0,0,255));
+    line(((int16_t) p_x.x)+offset_x,((int16_t) p_x.y)+offset_y, offset_x, offset_y, rgb565(255,0,0));
+    line(((int16_t) p_y.x)+offset_x,((int16_t) p_y.y)+offset_y, offset_x, offset_y, rgb565(0,255,0));
+    line(((int16_t) p_z.x)+offset_x,((int16_t) p_z.y)+offset_y, offset_x, offset_y, rgb565(0,0,255));
 }
 
 void bubble_sort(uint_fix16_t a[], int n) {
