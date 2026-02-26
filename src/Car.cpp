@@ -3,7 +3,7 @@
 #include "RenderUtils.hpp"
 
 #ifndef PC
-#   include <sdk/calc/calc.hpp>
+#   include <sdk/calc/calc.h>
 #else
 #   include <iostream>
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"

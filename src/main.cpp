@@ -236,8 +236,8 @@ int main()
     uint16_t lfsr = 0x453A;
 
     // Initialize VRAM globals
-    vram = (uint16_t*)LCD_GetVRAMAddress();
-    LCD_GetSize(&width, &height);
+    global_vram = (uint16_t*)LCD_GetVRAMAddress();
+    LCD_GetSize(&screen_width, &screen_height);
 
 #else // ifdef PC
 int main(int argc, const char * argv[])

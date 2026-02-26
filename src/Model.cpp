@@ -175,6 +175,7 @@ void Model::_shiftTransform(fix16_vec3 transform)
 // Scale raw model vertices
 bool Model::load_from_binary_obj_file(char* fname, char* ftexture, bool center)
 {
+    (void)center; // Unused parameter
     // ~~~~~~~~~~~~~~~~~~~~~ Object ~~~~~~~~~~~~~~~~~~~~~
 
 #ifndef PC

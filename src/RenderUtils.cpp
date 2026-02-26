@@ -7,8 +7,8 @@
 #ifndef PC
 #   include <sdk/os/lcd.h>
     // Global VRAM pointers
-    uint16_t* vram;
-    int width, height;
+    uint16_t* global_vram;
+    int screen_width, screen_height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif
@@ -16,6 +16,44 @@
 // Light intensity range 1.0f - MIN_LIGHT_INTENSITY
 // It looks much better if colors wont go to full black
 #define MIN_LIGHT_INTENSITY 0.30f
+
+#ifdef PC
+// PC Implementations of graphics primitives
+color_t color(uint8_t r, uint8_t g, uint8_t b) {
+    return (r << 16) | (g << 8) | b;
+}
+
+// setPixel for PC is likely handled via setPixel_Unsafe in PC_SDL_screen.hpp or similar
+// But we need to implement the function if it's called.
+// Checking PC_SDL_screen.hpp would be good, but for now implementing a wrapper
+// assuming setPixel_Unsafe is available or we use SDL directly.
+// Wait, RenderUtils.cpp included "PC_SDL_screen.hpp".
+// Let's implement it using setPixel_Unsafe if available, or just a dummy if PC build isn't primary focus.
+// However, the error log showed "setPixel was not declared in this scope" for non-PC build too?
+// No, the error was "src/RenderUtils.cpp:96:13: error: 'setPixel' was not declared in this scope".
+// This was likely for non-PC build because I hadn't defined it yet.
+// For PC build, I should ensure it exists.
+// Let's implement a simple version or rely on the header.
+void setPixel(int x, int y, color_t c) {
+    setPixel_Unsafe(x, y, c);
+}
+
+void line(int x0, int y0, int x1, int y1, color_t c) {
+    // Basic Bresenham for PC if needed, or use SDL
+    // Since PC_SDL_screen.hpp might have it?
+    // Let's just implement it to be safe.
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+    for (;;) {
+        setPixel(x0, y0, c);
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+#endif
 
 // -- Some Helper functions
 // -- TODO: Move these somewhere else

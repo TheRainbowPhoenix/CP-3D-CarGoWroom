@@ -24,6 +24,7 @@ for (auto it : linkedList) {
 
 #ifndef PC
 #   include <sdk/os/mem.h>
+#   include <cstdlib>
 #else
 #   include <cstdlib>
 #   include <iostream>

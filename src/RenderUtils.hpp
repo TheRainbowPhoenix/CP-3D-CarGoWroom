@@ -9,9 +9,47 @@
     typedef uint32_t color_t; // SDL2 uses 32b colors (24b colors + 8b alpha). Alpha not used.
 #else
     typedef uint16_t color_t; // ClassPad uses 16b colors
-    extern uint16_t* vram;
-    extern int width;
-    extern int height;
+    extern uint16_t* global_vram;
+    extern int screen_width;
+    extern int screen_height;
+#endif
+
+// Inline Graphics Helpers
+#ifndef PC
+inline color_t color(uint8_t r, uint8_t g, uint8_t b) {
+    return ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
+}
+
+inline void setPixel(int x, int y, color_t c) {
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height) {
+        global_vram[y * screen_width + x] = c;
+    }
+}
+
+// Bresenham's line algorithm
+inline void line(int x0, int y0, int x1, int y1, color_t c) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+    for (;;) {
+        setPixel(x0, y0, c);
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+#else
+// PC implementations usually in RenderUtils.cpp or PC_SDL_screen.hpp
+// Assuming they are defined there or we need to add prototypes here if used in headers?
+// RenderUtils.cpp uses them, but if they are functions, they need prototypes.
+// In legacy code, they were likely macros or functions.
+// Let's add prototypes for PC build if they aren't there.
+// Actually, PC build uses SDL, so these might be implemented differently.
+// Let's check RenderUtils.cpp
+color_t color(uint8_t r, uint8_t g, uint8_t b);
+void setPixel(int x, int y, color_t c);
+void line(int x0, int y0, int x1, int y1, color_t c);
 #endif
 
 Fix16 calculateLightIntensityPointLight(const fix16_vec3& lightPos,     const fix16_vec3& surfacePos, const fix16_vec3& normal, Fix16 lightIntensity);

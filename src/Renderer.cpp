@@ -10,9 +10,10 @@
 #   include <sdk/os/lcd.h>
 #   include <sdk/calc/calc.h>
 #   include <sdk/os/input.h>
-    extern uint16_t* vram;
-    extern int width;
-    extern int height;
+#   include <cstdlib>
+    extern uint16_t* global_vram;
+    extern int screen_width;
+    extern int screen_height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif
@@ -123,8 +124,8 @@ void Renderer::screen_flush()
 #ifndef PC
     LCD_Refresh();
     // Get VRAM and Size ONCE per frame
-    vram = (uint16_t*)LCD_GetVRAMAddress();
-    LCD_GetSize(&width, &height);
+    global_vram = (uint16_t*)LCD_GetVRAMAddress();
+    LCD_GetSize(&screen_width, &screen_height);
 #else
     SDL_UpdateTexture(_texture, NULL, screenPixels, SCREEN_X * sizeof(Uint32));
     SDL_RenderClear(_sdl_renderer);
@@ -178,7 +179,7 @@ void Renderer::screen_flush()
                 #ifdef PC
                     setPixel_Unsafe(x,y, FILL_SCREEN_COLOR);
                 #else
-                    vram[width*y + x] = FILL_SCREEN_COLOR;
+                    global_vram[screen_width*y + x] = FILL_SCREEN_COLOR;
                 #endif
             }
         }
@@ -210,7 +211,7 @@ void Renderer::screen_flush()
     #ifdef PC
                 setPixel_Unsafe(x,y, FILL_SCREEN_COLOR);
     #else
-                vram[width*y + x] = FILL_SCREEN_COLOR;
+                global_vram[screen_width*y + x] = FILL_SCREEN_COLOR;
     #endif
             }
         }
