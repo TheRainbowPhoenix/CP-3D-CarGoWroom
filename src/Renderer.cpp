@@ -11,9 +11,6 @@
 #   include <sdk/calc/calc.h>
 #   include <sdk/os/input.h>
 #   include <cstdlib>
-    extern uint16_t* global_vram;
-    extern int screen_width;
-    extern int screen_height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif

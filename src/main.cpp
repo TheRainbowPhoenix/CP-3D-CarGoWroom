@@ -408,9 +408,10 @@ int main(int argc, const char * argv[])
 #ifndef PC
         // ClassPad V3 Input Polling
         Input_Event event __attribute__((aligned(4)));
-        while(Input_GetInput(&event, 0, 0) == 1) { // Non-blocking
-            bool key_state = (event.type == Input_EventType::Key && event.data.key.down);
-            if (event.type == Input_EventType::Key) {
+        while(GetInput(&event, 0, 0) == 1) { // Non-blocking
+            // InputTypeKey = 1, direction 1 = down, 0 = up (usually)
+            bool key_state = (event.type == InputTypeKey && event.data.key.direction);
+            if (event.type == InputTypeKey) {
                 switch(event.data.key.keyCode) {
                     case KEYCODE_4: key_pad_4 = key_state; break;
                     case KEYCODE_6: key_pad_6 = key_state; break;
