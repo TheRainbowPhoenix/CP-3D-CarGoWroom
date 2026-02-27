@@ -409,9 +409,11 @@ int main(int argc, const char * argv[])
         // ClassPad V3 Input Polling
         Input_Event event __attribute__((aligned(4)));
         while(GetInput(&event, 0, 0) == 1) { // Non-blocking
-            // InputTypeKey = 1, direction 1 = down, 0 = up (usually)
-            bool key_state = (event.type == InputTypeKey && event.data.key.direction);
-            if (event.type == InputTypeKey) {
+            // direction 1 = down (KEY_PRESSED), 0 = up
+            // Assuming KEY_PRESSED is 1 or non-zero, but let's check direction > 0
+            // User suggested: event.data.key.direction == KEY_PRESSED
+            bool key_state = (event.type == EVENT_KEY && event.data.key.direction == 1);
+            if (event.type == EVENT_KEY) {
                 switch(event.data.key.keyCode) {
                     case KEYCODE_4: key_pad_4 = key_state; break;
                     case KEYCODE_6: key_pad_6 = key_state; break;
