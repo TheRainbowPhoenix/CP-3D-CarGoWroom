@@ -8,6 +8,7 @@
 #   include <sdk/os/lcd.h>
     // Global VRAM pointers
     uint16_t* global_vram;
+    uint16_t* backbuffer;
     unsigned int screen_width, screen_height;
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"

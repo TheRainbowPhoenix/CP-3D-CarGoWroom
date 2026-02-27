@@ -11,6 +11,7 @@
 #   include <sdk/calc/calc.h>
 #   include <sdk/os/input.h>
 #   include <cstdlib>
+#   include <cstring>
 #else
 #   include "PC_SDL_screen.hpp" // replaces "sdk/os/lcd.hpp"
 #endif
@@ -26,6 +27,12 @@ Renderer::Renderer()
 {
     directionalLightDir = {-1.0f, -0.5f, 0.0f};
     normalize_fix16_vec3(directionalLightDir);
+#ifndef PC
+    // Initialize backbuffer
+    // 320 * 528 * 2 bytes = 337920 bytes
+    // Use calloc to clear it initially
+    backbuffer = (uint16_t*)calloc(320 * 528, sizeof(uint16_t));
+#endif
 }
 
 #ifdef PC
@@ -34,6 +41,9 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
+#ifndef PC
+    if(backbuffer) free(backbuffer);
+#endif
     // Free memory of the created models (modelArray itself has destructor which frees its own memory)
     for (auto& it : modelArray) {
         delete it.first;
@@ -119,10 +129,19 @@ int Renderer::custom_sdl2_init(SDL_Window **window, SDL_Renderer **sdl_renderer,
 void Renderer::screen_flush()
 {
 #ifndef PC
-    LCD_Refresh();
-    // Get VRAM and Size ONCE per frame
+    // Get current VRAM buffer
     global_vram = (uint16_t*)LCD_GetVRAMAddress();
     LCD_GetSize(&screen_width, &screen_height);
+
+    // Copy backbuffer to VRAM
+    // Assuming screen_width * screen_height is correct size
+    if (global_vram && backbuffer) {
+        // Use memcpy for fast copy
+        // In render loop we will clear backbuffer or specific areas
+        memcpy(global_vram, backbuffer, screen_width * screen_height * sizeof(uint16_t));
+    }
+
+    LCD_Refresh();
 #else
     SDL_UpdateTexture(_texture, NULL, screenPixels, SCREEN_X * sizeof(Uint32));
     SDL_RenderClear(_sdl_renderer);
@@ -176,7 +195,8 @@ void Renderer::screen_flush()
                 #ifdef PC
                     setPixel_Unsafe(x,y, FILL_SCREEN_COLOR);
                 #else
-                    global_vram[screen_width*y + x] = FILL_SCREEN_COLOR;
+                    // Clear BACKBUFFER, not VRAM directly here
+                    backbuffer[screen_width*y + x] = FILL_SCREEN_COLOR;
                 #endif
             }
         }
@@ -208,7 +228,8 @@ void Renderer::screen_flush()
     #ifdef PC
                 setPixel_Unsafe(x,y, FILL_SCREEN_COLOR);
     #else
-                global_vram[screen_width*y + x] = FILL_SCREEN_COLOR;
+                // Clear BACKBUFFER
+                backbuffer[screen_width*y + x] = FILL_SCREEN_COLOR;
     #endif
             }
         }

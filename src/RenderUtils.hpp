@@ -11,6 +11,7 @@
 #else
     typedef uint16_t color_t; // ClassPad uses 16b colors
     extern uint16_t* global_vram;
+    extern uint16_t* backbuffer;
     extern unsigned int screen_width;
     extern unsigned int screen_height;
 #endif
@@ -23,7 +24,7 @@ inline color_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
 
 inline void setPixel(int x, int y, color_t c) {
     if (x >= 0 && x < (int)screen_width && y >= 0 && y < (int)screen_height) {
-        global_vram[y * screen_width + x] = c;
+        backbuffer[y * screen_width + x] = c;
     }
 }
 
