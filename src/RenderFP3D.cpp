@@ -37,7 +37,8 @@ fix16_vec2 getScreenCoordinate(
     rotateOnPlane(point.y, point.z, rotation.y);
 
     // Model translation + camera position
-    fix16_vec3 temp({
+    // Ensure 4-byte alignment to prevent SH4 address error when passing members by reference
+    __attribute__((aligned(4))) fix16_vec3 temp({
         point.x + translate.x - camera_pos.x,
         point.y + translate.y - camera_pos.y,
         point.z + translate.z - camera_pos.z,

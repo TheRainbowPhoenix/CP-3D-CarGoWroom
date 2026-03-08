@@ -131,7 +131,7 @@ void Renderer::screen_flush()
 #ifndef PC
     // Get current VRAM buffer
     global_vram = (uint16_t*)LCD_GetVRAMAddress();
-    LCD_GetSize(&screen_width, &screen_height);
+    LCD_GetSize((int*)&screen_width, (int*)&screen_height);
 
     // Copy backbuffer to VRAM
     // Assuming screen_width * screen_height is correct size
@@ -285,7 +285,8 @@ void Renderer::draw_Minimap(bool clear)
     const auto y_map_middle = offset_y;
 
     // Map position offset
-    fix16_vec3 minimap_pos_vec_tmp ({
+    // Ensure 4-byte alignment to prevent SH4 address error when passing members by reference
+    __attribute__((aligned(4))) fix16_vec3 minimap_pos_vec_tmp ({
         (int16_t)minimapPos.x, 0.0f, (int16_t)minimapPos.y
     });
     rotateOnPlane(minimap_pos_vec_tmp.x, minimap_pos_vec_tmp.z, camera_rot.x+PI_DIV_2);
@@ -299,7 +300,7 @@ void Renderer::draw_Minimap(bool clear)
     {
         auto model_pos = it.first->getPosition_ref();
         //
-        fix16_vec3 temp({ model_pos.x, 0.0f, model_pos.z });
+        __attribute__((aligned(4))) fix16_vec3 temp({ model_pos.x, 0.0f, model_pos.z });
         rotateOnPlane(temp.x, temp.z, camera_rot.x+PI_DIV_2);
         //
         const auto x = x_map_middle - (int16_t) temp.x / scale_div - (int16_t) minimap_pos_vec_tmp.x / scale_div;
