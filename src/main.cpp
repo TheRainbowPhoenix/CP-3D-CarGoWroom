@@ -238,7 +238,10 @@ int main()
 
     // Initialize VRAM globals
     global_vram = (uint16_t*)LCD_GetVRAMAddress();
-    LCD_GetSize(&screen_width, &screen_height);
+    int w, h;
+    LCD_GetSize(&w, &h);
+    screen_width = w;
+    screen_height = h;
 
 #else // ifdef PC
 int main(int argc, const char * argv[])

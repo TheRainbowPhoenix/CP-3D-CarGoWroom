@@ -131,7 +131,10 @@ void Renderer::screen_flush()
 #ifndef PC
     // Get current VRAM buffer
     global_vram = (uint16_t*)LCD_GetVRAMAddress();
-    LCD_GetSize((int*)&screen_width, (int*)&screen_height);
+    int w, h;
+    LCD_GetSize(&w, &h);
+    screen_width = w;
+    screen_height = h;
 
     // Copy backbuffer to VRAM
     // Assuming screen_width * screen_height is correct size
